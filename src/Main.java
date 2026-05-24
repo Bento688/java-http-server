@@ -10,54 +10,56 @@ public class Main {
     public static void main(String[] args) {
         int port = 8080;
 
+        Router app = new Router();
+
+        app.get("/", (req) -> "<html><body><h1>Home Page</h1><p>Welcome to pure Java.</p></body></html>");
+        app.get("/about", (req) -> "<html><body><h1>About Us</h1><p>We build from scratch.</p></body></html>");
+        app.get("/api", (req) -> "{\"status\": \"active\", \"language\": \"Java\"}");
+        app.get("/echo", (req) -> {
+            // 'req' contains the full request line, e.g., "GET /echo HTTP/1.1"
+            return "<html><body><h1>Echo:</h1><p>You sent: " + req + "</p></body></html>";
+        });
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Server is listening on port " + port);
             boolean isRunning = true;
 
             while (isRunning) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New connection established!");
 
-                InputStream input = clientSocket.getInputStream();
-                InputStreamReader reader = new InputStreamReader(input);
-                BufferedReader bufferedReader = new BufferedReader(reader);
+                Thread worker = new Thread(() -> {
+                    try {
+                        System.out.println("Handled by " + Thread.currentThread().getName());
 
-                String requestLine = bufferedReader.readLine();
-                if (requestLine == null) continue;
+                        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                        String requestLine = bufferedReader.readLine();
 
-                System.out.println("Request: " + requestLine);
+                        if (requestLine != null) {
+                            String[] requestParts = requestLine.split(" ");
+                            String method = requestParts[0];
+                            String path = requestParts[1];
 
-                String[] requestParts = requestLine.split(" ");
-                String method = requestParts[0];
-                String path = requestParts[1];
+                            // Drain the headers
+                            String headerLine;
+                            while ((headerLine = bufferedReader.readLine()) != null && !headerLine.isEmpty()) {};
 
-                String htmlBody;
-                String statusCode = "200 OK";
+                            String httpResponse = app.handleRequest(method, path, requestLine);
 
-                if (path.equals("/")) {
-                    htmlBody = "<html><body><h1>Home Page</h1><p>Welcome to pure Java.</p></body></html>";
-                } else if (path.equals("/about")) {
-                    htmlBody = "<html><body><h1>About Us</h1><p>We build from scratch.</p></body></html>";
-                } else {
-                    htmlBody = "<html><body><h1>404 Not Found</h1><p>Nothing to see here.</p></body></html>";
-                    statusCode = "404 Not Found";
-                }
+                            OutputStream output = clientSocket.getOutputStream();
+                            output.write(httpResponse.getBytes("UTF-8"));
+                            output.flush();
+                        }
+                    } catch (IOException e) {
+                        System.out.println("Failed to start server: " + e.getMessage());
+                    } finally {
+                        try {
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
 
-                String headerLine;
-                while ((headerLine = bufferedReader.readLine()) != null && !headerLine.isEmpty()) {
-                    System.out.println("Header: " + headerLine);
-                }
-
-                String httpResponse = "HTTP/1.1 " +  statusCode + "\r\n" +
-                        "Content-Type: text/html; charset=UTF-8\r\n" + "Content-Length: " + htmlBody.getBytes().length + "\r\n" + "\r\n"
-                        + htmlBody;
-
-                OutputStream output = clientSocket.getOutputStream();
-                output.write(httpResponse.getBytes("UTF-8"));
-
-                output.flush();
-
-                clientSocket.close();
+                worker.start();
             }
         } catch (IOException e) {
             System.out.println("Failed to start server: " + e.getMessage());
