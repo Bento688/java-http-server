@@ -1,5 +1,6 @@
 import java.io.BufferedReader;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -28,6 +29,17 @@ public class Main {
                 while ((headerLine = bufferedReader.readLine()) != null && !headerLine.isEmpty()) {
                     System.out.println("Header: " + headerLine);
                 }
+
+                String htmlBody = "<html><body><h1>Hello from Pure Java!</h1><p>The server is alive.</p></body></html>";
+
+                String httpResponse = "HTTP/1.1 200 OK\r\n" +
+                        "Content-Type: text/html; charset=UTF-8\r\n" + "Content-Length: " + htmlBody.getBytes().length + "\r\n" + "\r\n"
+                        + htmlBody;
+
+                OutputStream output = clientSocket.getOutputStream();
+                output.write(httpResponse.getBytes("UTF-8"));
+
+                output.flush();
 
                 clientSocket.close();
             }
