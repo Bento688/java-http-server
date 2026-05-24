@@ -23,16 +23,32 @@ public class Main {
                 BufferedReader bufferedReader = new BufferedReader(reader);
 
                 String requestLine = bufferedReader.readLine();
+                if (requestLine == null) continue;
+
                 System.out.println("Request: " + requestLine);
+
+                String[] requestParts = requestLine.split(" ");
+                String method = requestParts[0];
+                String path = requestParts[1];
+
+                String htmlBody;
+                String statusCode = "200 OK";
+
+                if (path.equals("/")) {
+                    htmlBody = "<html><body><h1>Home Page</h1><p>Welcome to pure Java.</p></body></html>";
+                } else if (path.equals("/about")) {
+                    htmlBody = "<html><body><h1>About Us</h1><p>We build from scratch.</p></body></html>";
+                } else {
+                    htmlBody = "<html><body><h1>404 Not Found</h1><p>Nothing to see here.</p></body></html>";
+                    statusCode = "404 Not Found";
+                }
 
                 String headerLine;
                 while ((headerLine = bufferedReader.readLine()) != null && !headerLine.isEmpty()) {
                     System.out.println("Header: " + headerLine);
                 }
 
-                String htmlBody = "<html><body><h1>Hello from Pure Java!</h1><p>The server is alive.</p></body></html>";
-
-                String httpResponse = "HTTP/1.1 200 OK\r\n" +
+                String httpResponse = "HTTP/1.1 " +  statusCode + "\r\n" +
                         "Content-Type: text/html; charset=UTF-8\r\n" + "Content-Length: " + htmlBody.getBytes().length + "\r\n" + "\r\n"
                         + htmlBody;
 
