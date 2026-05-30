@@ -17,12 +17,16 @@ public class Main {
 
         Router app = new Router();
 
-        app.get("/", (req) -> "<html><body><h1>Home Page</h1><p>Welcome to pure Java.</p></body></html>");
-        app.get("/about", (req) -> "<html><body><h1>About Us</h1><p>We build from scratch.</p></body></html>");
-        app.get("/api", (req) -> "{\"status\": \"active\", \"language\": \"Java\"}");
-        app.get("/echo", (req) -> {
-            // 'req' contains the full request line, e.g., "GET /echo HTTP/1.1"
-            return "<html><body><h1>Echo:</h1><p>You sent: " + req + "</p></body></html>";
+        app.get("/api/user", (req) -> {
+            String userId = req.getQueryParam("id");
+
+            if (userId == null) {
+                return new HttpResponse(400, "Bad Request", "Missing ID Parameter!");
+            }
+
+            HttpResponse res = new HttpResponse(200, "OK", "{\"user\": " + userId + "}");
+            res.addHeader("Content-Type", "application/json");
+            return res;
         });
 
         try (ServerSocket serverSocket = new ServerSocket(port)) {
@@ -40,17 +44,7 @@ public class Main {
 
                         HttpRequest req = RequestParser.parse(bufferedReader);
 
-                        String requestLine = bufferedReader.readLine();
-
                         if (req != null) {
-                            String[] requestParts = requestLine.split(" ");
-                            String method = requestParts[0];
-                            String path = requestParts[1];
-
-                            // Drain the headers
-                            String headerLine;
-                            while ((headerLine = bufferedReader.readLine()) != null && !headerLine.isEmpty()) {};
-
                             String httpResponse = app.handleRequest(req);
 
                             OutputStream output = clientSocket.getOutputStream();
