@@ -5,21 +5,21 @@ import java.util.function.Function;
 public class Router {
 
     // the routes HashMap
-    private Map<String, Function<String, String>> routes = new HashMap<>();
+    private Map<String, Function<HttpRequest, String>> routes = new HashMap<>();
 
     // the get method (append GET operations to the hashmap)
-    public void get(String path, Function<String, String> handler) {
+    public void get(String path, Function<HttpRequest, String> handler) {
         routes.put("GET " + path, handler);
     }
 
     // the "runner" for the method inside the hashmap
-    public String handleRequest(String method, String path, String rawRequest) {
-        String routeKey = method + " " + path;
+    public String handleRequest(HttpRequest req) {
+        String routeKey = req.getMethod() + " " + req.getPath();
         String statusCode = "200 OK";
         String htmlBody;
 
         if (routes.containsKey(routeKey)) {
-            htmlBody = routes.get(routeKey).apply(rawRequest);
+            htmlBody = routes.get(routeKey).apply(req);
         } else {
             htmlBody = "<html><body><h1>404 Not Found</h1><p>Route does not exist.</p></body></html>";
             statusCode = "404 Not Found";
